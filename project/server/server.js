@@ -1,42 +1,34 @@
 require("dotenv").config();
-
 const express = require("express");
-
 const mongoose = require("mongoose");
-
 const cors = require("cors");
-
 const studentRoutes = require("./routes/studentRoutes");
 
 const app = express();
 
-app.use(cors());
-
+// Middleware
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
-// Câu 45: API kiểm tra Backend
+// API kiểm tra Backend
 app.get("/api/hello", (req, res) => {
     res.json({ message: "Hello from Express Backend!" });
 });
 
+// Student routes
 app.use("/api/students", studentRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-
+// Kết nối MongoDB (hỗ trợ đa dạng biến môi trường hoặc local fallback)
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/studentdb";
+mongoose.connect(mongoUri)
     .then(() => {
-
-        console.log("MongoDB connected successfully!");
-
+        console.log("✅ MongoDB connected successfully!");
     })
-
     .catch((error) => {
-
-        console.error("MongoDB connection error:", error);
-
+        console.error("❌ MongoDB connection error:", error);
     });
 
-app.listen(5000, "0.0.0.0", () => {
-
-    console.log("Server running on port 5000");
-
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
 });

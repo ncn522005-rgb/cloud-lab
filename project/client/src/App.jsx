@@ -3,21 +3,26 @@ import "./App.css";
 
 function App() {
     const [students, setStudents] = useState([]);
-
     const [studentId, setStudentId] = useState("");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
-
     const [editingId, setEditingId] = useState(null);
+
+    const resetForm = () => {
+        setEditingId(null);
+        setStudentId("");
+        setName("");
+        setEmail("");
+    };
 
     // Lấy danh sách sinh viên
     const fetchStudents = async () => {
         try {
             const response = await fetch("/api/students");
             const data = await response.json();
-            setStudents(data);
+            setStudents(Array.isArray(data) ? data : data.students || []);
         } catch (error) {
-            console.error(error);
+            console.error("Lỗi fetch:", error);
         }
     };
 
@@ -28,34 +33,22 @@ function App() {
     // Thêm sinh viên
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        const newStudent = {
-            studentId,
-            name,
-            email
-        };
+        const newStudent = { studentId, name, email };
 
         try {
             const response = await fetch("/api/students", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(newStudent)
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newStudent),
             });
 
             const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || data.message);
+                throw new Error(data.error || data.message || "Thêm thất bại");
             }
 
             setStudents((prev) => [...prev, data]);
-
-            setStudentId("");
-            setName("");
-            setEmail("");
-
+            resetForm();
             alert("Thêm sinh viên thành công!");
         } catch (error) {
             alert("Lỗi: " + error.message);
@@ -65,37 +58,26 @@ function App() {
     // Bắt đầu sửa
     const handleEdit = (student) => {
         setEditingId(student._id);
-        setStudentId(student.studentId);
-        setName(student.name);
-        setEmail(student.email);
+        setStudentId(student.studentId || "");
+        setName(student.name || "");
+        setEmail(student.email || "");
     };
 
     // Cập nhật sinh viên bằng PUT
     const handleUpdate = async (e) => {
         e.preventDefault();
-
-        const updatedStudent = {
-            studentId,
-            name,
-            email
-        };
+        const updatedStudent = { studentId, name, email };
 
         try {
-            const response = await fetch(
-                `/api/students/${editingId}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(updatedStudent)
-                }
-            );
+            const response = await fetch(`/api/students/${editingId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedStudent),
+            });
 
             const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(data.error || data.message);
+                throw new Error(data.error || data.message || "Cập nhật thất bại");
             }
 
             setStudents((prevStudents) =>
@@ -103,12 +85,7 @@ function App() {
                     student._id === editingId ? data : student
                 )
             );
-
-            setEditingId(null);
-            setStudentId("");
-            setName("");
-            setEmail("");
-
+            resetForm();
             alert("Cập nhật sinh viên thành công!");
         } catch (error) {
             alert("Lỗi: " + error.message);
@@ -117,42 +94,27 @@ function App() {
 
     // Hủy sửa
     const handleCancel = () => {
-        setEditingId(null);
-        setStudentId("");
-        setName("");
-        setEmail("");
+        resetForm();
     };
 
-    // Xóa sinh viên bằng DELETE
+    // Xóa sinh viên bằng DELETE (Safe parse response)
     const handleDelete = async (id) => {
-        const confirmDelete = window.confirm(
-            "Bạn có chắc muốn xóa sinh viên này không?"
-        );
-
-        if (!confirmDelete) {
-            return;
-        }
+        const confirmDelete = window.confirm("Bạn có chắc muốn xóa sinh viên này không?");
+        if (!confirmDelete) return;
 
         try {
-            const response = await fetch(
-                `/api/students/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-            const data = await response.json();
+            const response = await fetch(`/api/students/${id}`, {
+                method: "DELETE",
+            });
 
             if (!response.ok) {
-                throw new Error(data.error || data.message);
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || data.message || "Xóa thất bại");
             }
 
             setStudents((prevStudents) =>
-                prevStudents.filter(
-                    (student) => student._id !== id
-                )
+                prevStudents.filter((student) => student._id !== id)
             );
-
             alert("Xóa sinh viên thành công!");
         } catch (error) {
             alert("Lỗi: " + error.message);
@@ -162,7 +124,6 @@ function App() {
     return (
         <div className="page">
             <div className="container">
-
                 <div className="header">
                     <h1>🎓 Quản Lý Sinh Viên</h1>
                     <p>Hệ thống quản lý sinh viên MERN</p>
@@ -170,27 +131,17 @@ function App() {
 
                 <div className="form-card">
                     <h2>
-                        {editingId
-                            ? "✏️ Cập nhật sinh viên"
-                            : "➕ Thêm sinh viên"}
+                        {editingId ? "✏️ Cập nhật sinh viên" : "➕ Thêm sinh viên"}
                     </h2>
 
-                    <form
-                        onSubmit={
-                            editingId
-                                ? handleUpdate
-                                : handleSubmit
-                        }
-                    >
+                    <form onSubmit={editingId ? handleUpdate : handleSubmit}>
                         <div className="form-group">
                             <label>MSSV</label>
                             <input
                                 type="text"
                                 placeholder="Nhập mã số sinh viên"
                                 value={studentId}
-                                onChange={(e) =>
-                                    setStudentId(e.target.value)
-                                }
+                                onChange={(e) => setStudentId(e.target.value)}
                                 required
                             />
                         </div>
@@ -201,9 +152,7 @@ function App() {
                                 type="text"
                                 placeholder="Nhập họ và tên"
                                 value={name}
-                                onChange={(e) =>
-                                    setName(e.target.value)
-                                }
+                                onChange={(e) => setName(e.target.value)}
                                 required
                             />
                         </div>
@@ -214,21 +163,14 @@ function App() {
                                 type="email"
                                 placeholder="Nhập email"
                                 value={email}
-                                onChange={(e) =>
-                                    setEmail(e.target.value)
-                                }
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>
 
                         <div className="form-buttons">
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                            >
-                                {editingId
-                                    ? "💾 Cập nhật"
-                                    : "➕ Thêm sinh viên"}
+                            <button type="submit" className="btn btn-primary">
+                                {editingId ? "💾 Cập nhật" : "➕ Thêm sinh viên"}
                             </button>
 
                             {editingId && (
@@ -247,9 +189,7 @@ function App() {
                 <div className="list-card">
                     <div className="list-header">
                         <h2>📋 Danh sách sinh viên</h2>
-                        <span className="student-count">
-                            {students.length} sinh viên
-                        </span>
+                        <span className="student-count">{students.length} sinh viên</span>
                     </div>
 
                     <div className="table-wrapper">
@@ -263,11 +203,10 @@ function App() {
                                     <th>Thao tác</th>
                                 </tr>
                             </thead>
-
                             <tbody>
                                 {students.length > 0 ? (
                                     students.map((student, index) => (
-                                        <tr key={student._id}>
+                                        <tr key={student._id || index}>
                                             <td>{index + 1}</td>
                                             <td>
                                                 <span className="student-id">
@@ -280,20 +219,13 @@ function App() {
                                                 <div className="action-buttons">
                                                     <button
                                                         className="btn-edit"
-                                                        onClick={() =>
-                                                            handleEdit(student)
-                                                        }
+                                                        onClick={() => handleEdit(student)}
                                                     >
                                                         ✏️ Sửa
                                                     </button>
-
                                                     <button
                                                         className="btn-delete"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                student._id
-                                                            )
-                                                        }
+                                                        onClick={() => handleDelete(student._id)}
                                                     >
                                                         🗑️ Xóa
                                                     </button>
@@ -303,10 +235,7 @@ function App() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td
-                                            colSpan="5"
-                                            className="empty"
-                                        >
+                                        <td colSpan="5" className="empty">
                                             Chưa có sinh viên nào
                                         </td>
                                     </tr>
@@ -315,7 +244,6 @@ function App() {
                         </table>
                     </div>
                 </div>
-
             </div>
         </div>
     );
