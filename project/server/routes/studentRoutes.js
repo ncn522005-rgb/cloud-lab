@@ -3,7 +3,7 @@ const router = express.Router();
 
 const Student = require("../models/Student");
 
-//lấy tất cả sinh viên
+// lấy tất cả sinh viên
 router.get("/", async (req, res) => {
     try {
         const students = await Student.find();
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-//thêm sinh viên
+// thêm sinh viên
 router.post("/", async (req, res) => {
     try {
         const student = await Student.create(req.body);
@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-//cập nhật sinh viên
+// cập nhật sinh viên
 router.put("/:id", async (req, res) => {
     try {
         const student = await Student.findByIdAndUpdate(
@@ -56,7 +56,7 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-//xóa sinh viên
+// xóa sinh viên
 router.delete("/:id", async (req, res) => {
     try {
         const student = await Student.findByIdAndDelete(req.params.id);
